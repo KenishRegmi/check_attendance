@@ -2,13 +2,11 @@ from src.utils import parse_date, time_diff_minutes
 from datetime import timedelta
 
 def analyze_hourly_blocks_with_gap_check(data_list, max_gap=15):
-    # Filter and parse data
     valid_data = [d for d in data_list if 'data' in d and 'date' in d]
     for d in valid_data:
         d['parsed_date'] = parse_date(d['date'])
         d['data'] = float(d['data'])
 
-    # Sort by date
     sorted_data = sorted(valid_data, key=lambda x: x['parsed_date'])
 
     usage_blocks = []
@@ -22,6 +20,7 @@ def analyze_hourly_blocks_with_gap_check(data_list, max_gap=15):
         block = [sorted_data[i]]
 
         j = i + 1
+        # Collect points within 1 hour from start_time
         while j < n and (sorted_data[j]['parsed_date'] - start_time) <= timedelta(hours=1):
             block.append(sorted_data[j])
             j += 1
@@ -43,8 +42,10 @@ def analyze_hourly_blocks_with_gap_check(data_list, max_gap=15):
                 "samples": len(block)
             })
             total_consumed += consumption
-            i = j  # jump to next block after this hour
+            # Slide window by 1 index only (to catch overlapping blocks)
+            i += 1
         else:
-            i += 1  # discard this block and move start forward by one
+            # Slide window by 1 index if not valid block
+            i += 1
 
     return usage_blocks, round(total_consumed, 2)
